@@ -1,0 +1,3 @@
+# Ignore python artifacts
+/.venv
+/__pycache__
