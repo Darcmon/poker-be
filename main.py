@@ -1,7 +1,10 @@
 import asyncio
+import base64
 import datetime
 import itertools
 import random
+import string
+import uuid
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket
@@ -76,6 +79,13 @@ def get_user_state(user):
         return {"cards": [state["cards"][1], state["cards"][1 + len(state["players"])]]}
 
 
+@app.post("/api/game")
+def create_game():
+    game_id = generate_game_id()
+    game_code = generate_game_code()
+    return {"game_id": game_id, "game_code": game_code}
+
+
 @app.websocket("/ws/test")
 async def websocket_test(ws: WebSocket):
     await ws.accept()
@@ -83,3 +93,12 @@ async def websocket_test(ws: WebSocket):
     while (delta := end - datetime.datetime.now()) > datetime.timedelta():
         await ws.send_json({"timeRemaining": delta.seconds})
         await asyncio.sleep(1)
+
+
+def generate_game_id():
+    game_id = base64.urlsafe_b64encode(uuid.uuid4().bytes)
+    return game_id.decode("utf-8").replace("=", "")
+
+
+def generate_game_code():
+    return "".join(random.choice(string.ascii_uppercase) for _ in range(4))
