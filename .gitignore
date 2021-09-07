@@ -1,3 +1,6 @@
+# Ignore secrets
+/.secrets
+
 # Ignore python artifacts
 /.venv
 /__pycache__
