@@ -4,8 +4,10 @@ import datetime
 import random
 import string
 import uuid
+from typing import Optional
 
 from fastapi import APIRouter, Depends, FastAPI, WebSocket
+from pydantic import BaseModel
 
 import auth
 import game
@@ -25,9 +27,20 @@ def generate_game_code():
     return "".join(random.choice(string.ascii_uppercase) for _ in range(4))
 
 
+# Things we need:
+# - A mapping between the game code and the game ID.
+# - Which players are participating in a given game.
+# - A mapping between the player's nickname and their user ID.
+
+
+class NickName(BaseModel):
+    nickName: str
+
+
 @api.post("/game")
-def create_game(user=Depends(auth.get_current_user)):
+def create_game(nickName: NickName, user=Depends(auth.get_current_user)):
     print(user)
+    print(nickName)
     game_id = generate_game_id()
     game_code = generate_game_code()
     return {"game_id": game_id, "game_code": game_code}
