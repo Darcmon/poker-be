@@ -6,7 +6,7 @@ import string
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, FastAPI, WebSocket
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, WebSocket
 from pydantic import BaseModel
 
 import auth
@@ -32,18 +32,53 @@ def generate_game_code():
 # - Which players are participating in a given game.
 # - A mapping between the player's nickname and their user ID.
 
+games = {}
+current_game_codes = {}
+
+
+@api.get("/games")
+def list_games():
+    return {
+        "games": games,
+        "current_game_codes": current_game_codes
+    }
+
 
 class NickName(BaseModel):
-    nickName: str
+    nick_name: str
 
 
 @api.post("/game")
-def create_game(nickName: NickName, user=Depends(auth.get_current_user)):
+def create_game(nick_name: NickName, user=Depends(auth.get_current_user)):
     print(user)
-    print(nickName)
+    print(nick_name)
     game_id = generate_game_id()
     game_code = generate_game_code()
+
+    g = game.Game(game_id, game_code)
+    games[game_id] = g
+    g.add_player(nick_name.nick_name, user["id"])
+
+    current_game_codes[game_code] = game_id
+
     return {"game_id": game_id, "game_code": game_code}
+
+
+class JoinGame(BaseModel):
+    nick_name: str
+    game_code: str
+
+
+@api.post("/join")
+def join_game(join_game: JoinGame, user=Depends(auth.get_current_user)):
+    if join_game.game_code not in current_game_codes:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game_id = current_game_codes[join_game.game_code]
+
+    game = games[game_id]
+    game.add_player(join_game.nick_name, user["id"])
+
+    return {"game_id": game_id, "game_code": join_game.game_code}
 
 
 @app.websocket("/ws/test")
