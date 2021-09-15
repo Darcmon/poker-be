@@ -4,18 +4,16 @@ import datetime
 import random
 import string
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, WebSocket
 from pydantic import BaseModel
 
 import auth
-import game
+from game import Game
 
 app = FastAPI()
 api = APIRouter(prefix="/api")
 api.include_router(auth.api)
-api.include_router(game.api)
 
 
 def generate_game_id():
@@ -36,32 +34,8 @@ games = {}
 current_game_codes = {}
 
 
-@api.get("/games")
-def list_games():
-    return {
-        "games": games,
-        "current_game_codes": current_game_codes
-    }
-
-
-class NickName(BaseModel):
+class CreateGame(BaseModel):
     nick_name: str
-
-
-@api.post("/game")
-def create_game(nick_name: NickName, user=Depends(auth.get_current_user)):
-    print(user)
-    print(nick_name)
-    game_id = generate_game_id()
-    game_code = generate_game_code()
-
-    g = game.Game(game_id, game_code)
-    games[game_id] = g
-    g.add_player(nick_name.nick_name, user["id"])
-
-    current_game_codes[game_code] = game_id
-
-    return {"game_id": game_id, "game_code": game_code}
 
 
 class JoinGame(BaseModel):
@@ -69,16 +43,47 @@ class JoinGame(BaseModel):
     game_code: str
 
 
-@api.post("/join")
-def join_game(join_game: JoinGame, user=Depends(auth.get_current_user)):
-    if join_game.game_code not in current_game_codes:
+class GetGame(BaseModel):
+    game_id: str
+    game_code: str
+
+
+@api.post("/games", response_model=GetGame)
+def create_game(req: CreateGame, user=Depends(auth.get_current_user)) -> GetGame:
+    print(user)
+    print(req)
+    game_id = generate_game_id()
+    game_code = generate_game_code()
+
+    game = Game(game_id, game_code)
+    games[game_id] = game
+    game.add_player(req.nick_name, user["id"])
+
+    current_game_codes[game_code] = game_id
+
+    return GetGame(game_id=game_id, game_code=game_code)
+
+
+@api.patch("/games", response_model=GetGame)
+def join_game(req: JoinGame, user=Depends(auth.get_current_user)) -> GetGame:
+    if req.game_code not in current_game_codes:
         raise HTTPException(status_code=404, detail="Game not found")
-    game_id = current_game_codes[join_game.game_code]
+    game_id = current_game_codes[req.game_code]
+
+    #TODO: Don't allow a user to join a game they're already a member of.
 
     game = games[game_id]
-    game.add_player(join_game.nick_name, user["id"])
+    game.add_player(req.nick_name, user["id"])
 
-    return {"game_id": game_id, "game_code": join_game.game_code}
+    return GetGame(game_id=game_id, game_code=req.game_code)
+
+
+@api.get("/games")
+def list_games():
+    return {
+        "games": games,
+        "current_game_codes": current_game_codes
+    }
 
 
 @app.websocket("/ws/test")

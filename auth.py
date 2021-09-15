@@ -1,14 +1,9 @@
 import asyncio
 import base64
 import datetime
-import itertools
 import json
-import random
-import string
-import uuid
 
-from fastapi import (APIRouter, Depends, FastAPI, HTTPException, WebSocket,
-                     status)
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
@@ -30,14 +25,6 @@ SCOPES = [
 api = APIRouter()
 scheme = HTTPBearer()
 
-class Auth(BaseModel):
-    code: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
 def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)):
     credentials_exception = HTTPException(status.HTTP_403_FORBIDDEN)
     try:
@@ -49,8 +36,16 @@ def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)):
     return payload
 
 
-@api.post("/login")
-def login(auth: Auth) -> Token:
+class LoginRequest(BaseModel):
+    code: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+
+@api.post("/login", response_model=LoginResponse)
+def login(auth: LoginRequest) -> LoginResponse:
     google = OAuth2Session(
         client_id=OAUTH2_CLIENT_SECRET["client_id"],
         auto_refresh_url=OAUTH2_CLIENT_SECRET["token_uri"],
@@ -68,7 +63,7 @@ def login(auth: Auth) -> Token:
     resp = google.get("https://www.googleapis.com/oauth2/v2/userinfo")
     access_token = jwt.encode(resp.json(), SECRET_KEY)
     print(access_token)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return LoginResponse(access_token=access_token, token_type="bearer")
 
 
 @api.get("/me")
