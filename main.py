@@ -86,6 +86,11 @@ def list_games():
     }
 
 
+@api.get("/games/{game_id}")
+def get_game(game_id: str, user=Depends(auth.get_current_user)):
+    return games[game_id]
+
+
 @app.websocket("/ws/test")
 async def websocket_test(ws: WebSocket):
     await ws.accept()
