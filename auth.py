@@ -1,6 +1,3 @@
-import asyncio
-import base64
-import datetime
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,7 +22,19 @@ SCOPES = [
 api = APIRouter()
 scheme = HTTPBearer()
 
-def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)):
+
+class User(BaseModel):
+    id: str
+    email: str
+    verified_email: bool
+    name: str
+    given_name: str
+    family_name: str
+    picture: str
+    locale: str
+
+
+def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)) -> User:
     credentials_exception = HTTPException(status.HTTP_403_FORBIDDEN)
     try:
         payload = jwt.decode(auth.credentials, SECRET_KEY)
@@ -33,11 +42,12 @@ def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    return payload
+    return User(**payload)
 
 
 class LoginRequest(BaseModel):
     code: str
+
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -67,5 +77,6 @@ def login(auth: LoginRequest) -> LoginResponse:
 
 
 @api.get("/me")
-def me(user = Depends(get_current_user)):
+def me(user: User = Depends(get_current_user)) -> User:
+    print(user)
     return user
