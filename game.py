@@ -39,8 +39,8 @@ class Game:
     def remove_websocket(self, ws: WebSocket, user: User):
         self.players[user.id].websockets.remove(ws)
 
-    def notify(self, ws: WebSocket, user: User):
-        return ws.send_json(self.to_json())
+    async def notify(self, ws: WebSocket, user: User):
+        await ws.send_json(self.to_json())
 
     async def notify_all(self):
         coros = [
@@ -53,3 +53,6 @@ class Game:
     async def add_player(self, player: Player):
         self.players[player.user.id] = player
         await self.notify_all()
+
+    def is_player(self, user: User):
+        return user.id in self.players

@@ -68,12 +68,12 @@ async def create_game(req: CreateGame, user: User = Depends(bearer_user)) -> Get
 async def join_game(req: JoinGame, user: User = Depends(bearer_user)) -> GetGame:
     if req.game_code not in current_game_codes:
         raise HTTPException(status_code=404, detail="Game not found")
+
     game_id = current_game_codes[req.game_code]
-
-    # TODO: Don't allow a user to join a game they're already a member of.
-
     game = games[game_id]
-    await game.add_player(Player(avatar=Avatar(name=req.nick_name), user=user))
+
+    if not game.is_player(user):
+        await game.add_player(Player(avatar=Avatar(name=req.nick_name), user=user))
 
     return GetGame(game_id=game_id, game_code=req.game_code)
 
