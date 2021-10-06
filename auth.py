@@ -34,15 +34,19 @@ class User(BaseModel):
     locale: str
 
 
-def get_current_user(auth: HTTPAuthorizationCredentials = Depends(scheme)) -> User:
+def query_user(token: str) -> User:
     credentials_exception = HTTPException(status.HTTP_403_FORBIDDEN)
     try:
-        payload = jwt.decode(auth.credentials, SECRET_KEY)
+        payload = jwt.decode(token, SECRET_KEY)
         if payload is None or not payload.get("verified_email"):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     return User(**payload)
+
+
+def bearer_user(auth: HTTPAuthorizationCredentials = Depends(scheme)) -> User:
+    return query_user(auth.credentials)
 
 
 class LoginRequest(BaseModel):
@@ -72,11 +76,9 @@ def login(auth: LoginRequest) -> LoginResponse:
 
     resp = google.get("https://www.googleapis.com/oauth2/v2/userinfo")
     access_token = jwt.encode(resp.json(), SECRET_KEY)
-    print(access_token)
     return LoginResponse(access_token=access_token, token_type="bearer")
 
 
 @api.get("/me")
-def me(user: User = Depends(get_current_user)) -> User:
-    print(user)
+def me(user: User = Depends(bearer_user)) -> User:
     return user
