@@ -7,12 +7,7 @@ from starlette.websockets import WebSocket
 from auth import User
 
 
-class Avatar(BaseModel):
-    name: str
-
-
 class Player(BaseModel):
-    avatar: Avatar
     user: User
     websockets: List[WebSocket] = []
 
@@ -30,7 +25,7 @@ class Game:
         return {
             "game_id": self.game_id,
             "game_code": self.game_code,
-            "players": [p.avatar.name for p in self.players.values()],
+            "players": [p.user.name for p in self.players.values()],
         }
 
     def add_websocket(self, ws: WebSocket, user: User):

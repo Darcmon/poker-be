@@ -11,7 +11,7 @@ from starlette.websockets import WebSocketState
 
 import auth
 from auth import User, bearer_user, query_user
-from game import Avatar, Game, Player
+from game import Game, Player
 
 app = FastAPI()
 api = APIRouter(prefix="/api")
@@ -37,11 +37,10 @@ current_game_codes: Dict[str, str] = {}
 
 
 class CreateGame(BaseModel):
-    nick_name: str
+    pass
 
 
 class JoinGame(BaseModel):
-    nick_name: str
     game_code: str
 
 
@@ -57,7 +56,7 @@ async def create_game(req: CreateGame, user: User = Depends(bearer_user)) -> Get
 
     game = Game(game_id, game_code)
     games[game_id] = game
-    await game.add_player(Player(avatar=Avatar(name=req.nick_name), user=user))
+    await game.add_player(Player(user=user))
 
     current_game_codes[game_code] = game_id
 
@@ -73,7 +72,7 @@ async def join_game(req: JoinGame, user: User = Depends(bearer_user)) -> GetGame
     game = games[game_id]
 
     if not game.is_player(user):
-        await game.add_player(Player(avatar=Avatar(name=req.nick_name), user=user))
+        await game.add_player(Player(user=user))
 
     return GetGame(game_id=game_id, game_code=req.game_code)
 
