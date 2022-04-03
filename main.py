@@ -4,7 +4,14 @@ import string
 import uuid
 from typing import Dict
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, WebSocket
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    HTTPException,
+    WebSocket,
+)
 from fastapi.logger import logger
 from pydantic import BaseModel
 from starlette.websockets import WebSocketState
@@ -84,6 +91,16 @@ def list_games():
 
 @api.get("/games/{game_id}")
 def get_game(game_id: str, user=Depends(bearer_user)):
+    return games[game_id].to_json()
+
+
+@api.post("/games/{game_id}/start")
+def start_game(game_id: str, tasks: BackgroundTasks, user=Depends(bearer_user)):
+    print(game_id)
+    game = games[game_id]
+    if not game.is_player(user):
+        raise HTTPException(status_code=403, detail="User has not joined the game")
+    game.start(5, tasks)
     return games[game_id].to_json()
 
 
