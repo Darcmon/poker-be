@@ -77,9 +77,19 @@ async def join_game(req: JoinGame, user: User = Depends(bearer_user)) -> GetGame
     return GetGame(game_id=game_id, game_code=req.game_code)
 
 
+@api.post("/games/{game_id}/start")
+def start_game(game_id: str, user: User = Depends(bearer_user)):
+    game = games[game_id]
+    if not game.is_player(user):
+        raise HTTPException(status_code=403, detail="User has not joined the game")
+    game.start(5)
+    return game.to_json()
+
+
 @api.get("/games")
 def list_games():
-    return {"games": games, "current_game_codes": current_game_codes}
+    # TODO: Add games back to the list of games response.
+    return {"current_game_codes": current_game_codes}
 
 
 @api.get("/games/{game_id}")

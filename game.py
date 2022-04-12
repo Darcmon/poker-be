@@ -1,4 +1,5 @@
 import asyncio
+from time import time
 from typing import Dict, List, Tuple
 
 from pydantic.main import BaseModel
@@ -16,15 +17,22 @@ class Player(BaseModel):
 
 
 class Game:
+    game_id: str
+    game_code: str
+    next_event_time: float
+    players: Dict[str, Player]
+
     def __init__(self, game_id: str, game_code: str):
         self.game_id = game_id
         self.game_code = game_code
-        self.players: Dict[str, Player] = {}
+        self.next_event_time = 0
+        self.players = {}
 
     def to_json(self):
         return {
             "game_id": self.game_id,
             "game_code": self.game_code,
+            "next_event_time": self.next_event_time - time(),
             "players": [p.user.name for p in self.players.values()],
         }
 
@@ -51,3 +59,6 @@ class Game:
 
     def is_player(self, user: User):
         return user.id in self.players
+
+    def start(self, delay: float):
+        self.next_event_time = time() + delay
