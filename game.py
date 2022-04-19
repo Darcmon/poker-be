@@ -32,7 +32,7 @@ class Game:
         return {
             "game_id": self.game_id,
             "game_code": self.game_code,
-            "next_event_time": self.next_event_time - time(),
+            "next_event_time_delta": self.next_event_time - time(),
             "players": [p.user.name for p in self.players.values()],
         }
 
